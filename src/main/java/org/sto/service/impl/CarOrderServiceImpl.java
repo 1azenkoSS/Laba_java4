@@ -13,6 +13,8 @@ import org.sto.repository.CarRepository;
 import org.sto.repository.UserRepository;
 import org.sto.service.CarOrderService;
 import org.springframework.stereotype.Service;
+import org.sto.service.CarService;
+import org.sto.service.UserService;
 
 import java.math.BigDecimal;
 import java.util.Comparator;
@@ -23,17 +25,14 @@ import java.util.List;
 
 public class CarOrderServiceImpl implements CarOrderService {
     private final CarOrderRepository carOrderRepository;
-    private final CarPartRepository carPartRepository;
-    private final CarRepository carRepository;
-    private final UserRepository userRepository;
-
+    private final CarService carService;
+    private final UserService userService;
+    //private final TelegramBot telegramBot;
     @Override
     public void addCarOrder(final CarOrderDTO carOrderDTO) {
         CarOrder carOrder = carOrderDTOToEntity(carOrderDTO);
-        System.out.println(carOrder);
-        System.out.println(carOrderDTO);
-        carRepository.save(carOrder.getCar());
-        userRepository.save(carOrder.getUser());
+        carService.save(carOrder.getCar());
+        userService.save(carOrder.getUser());
         carOrderRepository.save(carOrder);
     }
 
@@ -70,7 +69,8 @@ public class CarOrderServiceImpl implements CarOrderService {
     public void updateOrderStatus(final Long orderId, final Status status) {
         final CarOrder savedCarOrder = findById(orderId);
             savedCarOrder.setStatus(status);
-
+     /*   Update update = new Update();
+        telegramBot.handleContact(update.getMessage());*/
         savedCarOrder.setStatus(status);
         carOrderRepository.save(savedCarOrder);
     }
@@ -84,8 +84,8 @@ public class CarOrderServiceImpl implements CarOrderService {
         carOrderRepository.save(savedCarOrder);
     }
 
-    public void setCarOrderPrice(final Long orderId, final BigDecimal price) {
-        findById(orderId).setPrice(price);
+    public void setCarOrderPrice(final Long orderId, final double price) {
+        findById(orderId).setPrice(BigDecimal.valueOf(price));
     }
 
 

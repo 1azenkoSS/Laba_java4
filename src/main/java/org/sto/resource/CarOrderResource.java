@@ -39,7 +39,7 @@ public class CarOrderResource {
         carOrderService.addCarPart(orderId, carPartDTO);
     }
     @PatchMapping("/setPrice")
-    public void addCarParts(final @PathVariable Long orderId, final @RequestParam BigDecimal price) {
+    public void addCarParts(final @PathVariable Long orderId, final @RequestParam double price) {
         carOrderService.setCarOrderPrice(orderId, price);
     }
 }

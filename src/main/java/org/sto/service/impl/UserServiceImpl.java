@@ -15,8 +15,28 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private final UserRepository userRepository;
     @Override
-    public Optional<User> getUserById(final Long id) {
-        return userRepository.findById(id);
+    public User findById(final Long id) {
+        return userRepository.findById(id).orElseThrow();
     }
+
+    @Override
+    public void save(final User user) {
+        userRepository.save(user);
+    }
+
+    @Override
+    public void delete(final Long id) {
+        userRepository.deleteById(id);
+    }
+
+    @Override
+    public void update(final Long id,final User user) {
+        User savedUser = findById(id);
+        savedUser.setId(user.getId());
+        savedUser.setFirstName(user.getFirstName());
+        savedUser.setLastName(user.getLastName());
+        savedUser.setPhoneNumber(user.getPhoneNumber());
+    }
+
 
 }

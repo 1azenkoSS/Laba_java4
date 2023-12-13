@@ -15,5 +15,5 @@ public interface CarOrderService {
     List<CarOrder> displayCarsByProjectStatus(final Status status);
     void updateOrderStatus(final Long carOrderId, final Status status);
     void addCarPart(final Long orderId, final CarPartDTO carPartDTO);
-    void setCarOrderPrice(final Long orderId, final BigDecimal price);
+    void setCarOrderPrice(final Long orderId, final double price);
 }
