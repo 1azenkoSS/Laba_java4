@@ -79,7 +79,7 @@ public class CarOrderServiceImpl implements CarOrderService {
     public void addCarPart(final Long orderId, final CarPartDTO carPartDTO) {
         final CarOrder savedCarOrder = findById(orderId);
         CarPart carPart = carPartsDTOToEntity(carPartDTO);
-        carPartRepository.save(carPart);
+        //carPartRepository.save(carPart);
         savedCarOrder.getCarParts().add(carPart);
         carOrderRepository.save(savedCarOrder);
     }
