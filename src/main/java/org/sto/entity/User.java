@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.sql.Timestamp;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -24,4 +26,9 @@ public class User {
     @Column
     private String phoneNumber;
 
+    @Column
+    private Long chatId;
+
+    @Column
+    private Timestamp registeredAt;
 }

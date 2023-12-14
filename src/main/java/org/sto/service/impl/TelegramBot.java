@@ -1,5 +1,6 @@
 package org.sto.service.impl;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.sto.config.BotConfig;
 import org.sto.entity.CarOrder;
@@ -20,6 +21,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -27,9 +29,11 @@ import java.util.Optional;
 @Component
 public class TelegramBot extends TelegramLongPollingBot {
 
+    @Autowired
+    private final UserRepository userRepository;
+    //private final UserService userService;
     private final BotConfig config;
     private final CarOrderRepository carOrderRepository;
-    private final UserRepository userRepository;
     private static final String HELP_TEXT = "Цей бот створений для отримки статусу готовності вашого автомобіля. \n\n" +
             "Ви можете використовувати будь-які команди з меню або писати їх вручну. \n\n" +
             "Напишіть /start для початкового діалогу з ботом\n\n" +
@@ -52,19 +56,6 @@ public class TelegramBot extends TelegramLongPollingBot {
         return markup;
     }
 
-    private String getCarStatusMessage(final String phoneNumber) {
-        User user = userRepository.findByPhoneNumber(phoneNumber).orElseThrow();
-        CarOrder carOrder = carOrderRepository.findById(user.getId()).orElseThrow();
-        String message = "";
-
-        if (carOrder.getUser().getPhoneNumber() == phoneNumber) {
-            message = carOrder.getStatus() == Status.COMPLETED ? "завершено" : "в процесі";
-            return "Обслуговування вашого автомобіля " + message;
-
-        } else
-            return "У Вас зараз немає автомобілів на облуговуванні.";
-
-    }
 
     public TelegramBot(BotConfig config, CarOrderRepository carOrderRepository, UserRepository userRepository) {
         this.config = config;
@@ -104,7 +95,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private void sendContactRequest(long chatId) {
+    private void sendContactRequest(long chatId, Message msg) {
         SendMessage message = new SendMessage();
         message.setChatId(chatId);
         message.setText("Please share your contact information:");
@@ -133,7 +124,6 @@ public class TelegramBot extends TelegramLongPollingBot {
                 switch (messageText) {
                     case "/start":
                         StartCommandReceived(chatId, update.getMessage().getChat().getFirstName());
-                        sendContactRequest(chatId);
                         break;
                     case "/help":
                         sendMessage(chatId, HELP_TEXT);
@@ -145,43 +135,53 @@ public class TelegramBot extends TelegramLongPollingBot {
                         sendMessage(chatId, "Sorry, command was not recognized");
                 }
             } else if (update.getMessage().getContact() != null) {
-                handleContact(update.getMessage());
+                sendContactRequest(chatId,update.getMessage());
             }
         }
     }
 
-    public void handleContact(Message message) {
+    private void registeredUser(final Message msg, final Optional<User> user) {
+        if (user.isEmpty()) {
+
+          User userByPhoneNumber = userRepository.findByPhoneNumber(msg.getContact().getPhoneNumber()).orElseThrow();
+
+            var chatId = msg.getChatId();
+            userByPhoneNumber.setChatId(chatId);
+            userByPhoneNumber.setRegisteredAt(new Timestamp(System.currentTimeMillis()));
+
+            userRepository.save(userByPhoneNumber);
+        }
+    }
+
+    public void handleContact(final Message message) {
         Contact contact = message.getContact();
         long chatId = message.getChatId();
-
-        if (contact != null) {
-            String phoneNumber = contact.getPhoneNumber();
-            getCarStatusMessage(chatId, phoneNumber);
+        Optional<User> user = userRepository.findByChatId(chatId);
+        if (contact != null && user.isEmpty()) {
+            sendContactRequest(chatId,message);
+            registeredUser(message, user);
+        } else if (user.isPresent()) {
+            getCarStatusMessage(chatId, user);
         } else {
-            sendMessage(chatId, "Please share your contact information first.");
+            sendContactRequest(chatId, message);
         }
     }
 
-    private void getCarStatusMessage(long chatId, String phoneNumber) {
+    private void getCarStatusMessage(long chatId, Optional<User> userOptional) {
         try {
-            Optional<User> userOptional = userRepository.findByPhoneNumber(phoneNumber);
             if (userOptional.isPresent()) {
                 User user = userOptional.get();
-                CarOrder carOrder = carOrderRepository.findById(user.getId()).orElseThrow();
-                String message;
-
-                if (carOrder.getUser().getPhoneNumber().equals(phoneNumber)) {
-                    message = (carOrder.getStatus() == Status.COMPLETED) ? "завершено" : "в процесі";
-                    sendMessage(chatId, "Обслуговування вашого автомобіля " + message);
-                } else {
-                    sendMessage(chatId, "У Вас зараз немає автомобілів на обслуговуванні.");
-                }
+                CarOrder carOrder = carOrderRepository.findByUser(user).orElseThrow();
+                String message = (carOrder.getStatus() == Status.COMPLETED) ? "завершено" : "в процесі";
+                sendMessage(chatId, "Обслуговування вашого автомобіля " + message);
             } else {
-                sendMessage(chatId, "Користувача з таким номером телефону не знайдено.");
+                sendMessage(chatId, "Користувача не знайдено.");
             }
+
         } catch (Exception e) {
             e.printStackTrace();
             sendMessage(chatId, "An error occurred while processing your request.");
         }
     }
+
 }
