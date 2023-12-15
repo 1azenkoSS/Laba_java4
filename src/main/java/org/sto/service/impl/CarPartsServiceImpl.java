@@ -1,5 +1,6 @@
 package org.sto.service.impl;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.sto.entity.CarPart;
@@ -27,7 +28,7 @@ public class CarPartsServiceImpl implements CarPartsService {
     }
 
     @Override
-    public void update(final Long id, final CarPart carPart) {
+    public void update(final Long id, final @Valid CarPart carPart) {
         CarPart savedCarPart = fingById(id);
         savedCarPart.setId(carPart.getId());
         savedCarPart.setCode(carPart.getCode());

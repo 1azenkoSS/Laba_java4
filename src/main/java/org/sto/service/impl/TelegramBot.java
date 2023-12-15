@@ -1,5 +1,6 @@
 package org.sto.service.impl;
 
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.sto.config.BotConfig;
@@ -31,18 +32,16 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     @Autowired
     private final UserRepository userRepository;
-    //private final UserService userService;
     private final BotConfig config;
     private final CarOrderRepository carOrderRepository;
-    private static final String HELP_TEXT = "Цей бот створений для отримки статусу готовності вашого автомобіля. \n\n" +
-            "Ви можете використовувати будь-які команди з меню або писати їх вручну. \n\n" +
-            "Напишіть /start для початкового діалогу з ботом\n\n" +
-            "Напишіть /mycar для отримання статусу готовності вашого автомобіля\n\n" +
-            "Напишіть /help щоб побачити це повідомлення знову";
+    private static final String HELP_TEXT = "This bot is created to get the status of your car.\n\n" +
+            "You can use any commands from the menu or type them manually.\n\n" +
+            "Type /start for an initial dialogue with the bot\n\n" +
+            "Type /mycar to get the status of your vehicle\n\n" +
+            "Type /help to see this message again";
 
     private ReplyKeyboardMarkup createContactButton() {
         ReplyKeyboardMarkup markup = new ReplyKeyboardMarkup();
-
         markup.setKeyboard(new ArrayList<>());
 
         KeyboardRow keyboardRow = new KeyboardRow();
@@ -56,8 +55,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         return markup;
     }
 
-
-    public TelegramBot(BotConfig config, CarOrderRepository carOrderRepository, UserRepository userRepository) {
+    public TelegramBot(@Valid BotConfig config, @Valid CarOrderRepository carOrderRepository, @Valid UserRepository userRepository) {
         this.config = config;
         this.carOrderRepository = carOrderRepository;
         this.userRepository = userRepository;
@@ -72,9 +70,8 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private void StartCommandReceived(long chatId, String name) {
-        String answer = "Привіт, " + name + ", раді бачити вас у нашому СТО!";
-
+    private void startCommandReceived(final long chatId, final String name) {
+        final String answer = "Hello, " + name + ", nice to see you at our car service station!";
         sendMessage(chatId, answer);
     }
 
@@ -83,8 +80,8 @@ public class TelegramBot extends TelegramLongPollingBot {
         return config.getToken();
     }
 
-    private void sendMessage(long chatId, String textToSend) {
-        SendMessage message = new SendMessage();
+    private void sendMessage(final long chatId, final String textToSend) {
+        final SendMessage message = new SendMessage();
         message.setChatId(String.valueOf(chatId));
         message.setText(textToSend);
 
@@ -95,8 +92,8 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private void sendContactRequest(long chatId, Message msg) {
-        SendMessage message = new SendMessage();
+    private void sendContactRequest(final long chatId, final Message msg) {
+        final SendMessage message = new SendMessage();
         message.setChatId(chatId);
         message.setText("Please share your contact information:");
         message.setReplyMarkup(createContactButton());
@@ -114,16 +111,16 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     @Override
-    public void onUpdateReceived(Update update) {
+    public void onUpdateReceived(final Update update) {
         if (update.hasMessage()) {
-            long chatId = update.getMessage().getChatId();
+            final long chatId = update.getMessage().getChatId();
 
             if (update.getMessage().hasText()) {
-                String messageText = update.getMessage().getText();
+                final String messageText = update.getMessage().getText();
 
                 switch (messageText) {
                     case "/start":
-                        StartCommandReceived(chatId, update.getMessage().getChat().getFirstName());
+                        startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
                         break;
                     case "/help":
                         sendMessage(chatId, HELP_TEXT);
@@ -132,33 +129,30 @@ public class TelegramBot extends TelegramLongPollingBot {
                         handleContact(update.getMessage());
                         break;
                     default:
-                        sendMessage(chatId, "Sorry, command was not recognized");
+                        sendMessage(chatId, "Sorry, the command was not recognized");
                 }
             } else if (update.getMessage().getContact() != null) {
-                sendContactRequest(chatId,update.getMessage());
+                sendContactRequest(chatId, update.getMessage());
             }
         }
     }
 
     private void registeredUser(final Message msg, final Optional<User> user) {
         if (user.isEmpty()) {
-
-          User userByPhoneNumber = userRepository.findByPhoneNumber(msg.getContact().getPhoneNumber()).orElseThrow();
-
-            var chatId = msg.getChatId();
+            final User userByPhoneNumber = userRepository.findByPhoneNumber(msg.getContact().getPhoneNumber()).orElseThrow();
+            final var chatId = msg.getChatId();
             userByPhoneNumber.setChatId(chatId);
             userByPhoneNumber.setRegisteredAt(new Timestamp(System.currentTimeMillis()));
-
             userRepository.save(userByPhoneNumber);
         }
     }
 
     public void handleContact(final Message message) {
-        Contact contact = message.getContact();
-        long chatId = message.getChatId();
-        Optional<User> user = userRepository.findByChatId(chatId);
+        final Contact contact = message.getContact();
+        final long chatId = message.getChatId();
+        final Optional<User> user = userRepository.findByChatId(chatId);
         if (contact != null && user.isEmpty()) {
-            sendContactRequest(chatId,message);
+            sendContactRequest(chatId, message);
             registeredUser(message, user);
         } else if (user.isPresent()) {
             getCarStatusMessage(chatId, user);
@@ -167,15 +161,15 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private void getCarStatusMessage(long chatId, Optional<User> userOptional) {
+    private void getCarStatusMessage(final long chatId, final Optional<User> userOptional) {
         try {
             if (userOptional.isPresent()) {
-                User user = userOptional.get();
-                CarOrder carOrder = carOrderRepository.findByUser(user).orElseThrow();
-                String message = (carOrder.getStatus() == Status.COMPLETED) ? "завершено" : "в процесі";
-                sendMessage(chatId, "Обслуговування вашого автомобіля " + message);
+                final User user = userOptional.get();
+                final CarOrder carOrder = carOrderRepository.findByUser(user).orElseThrow();
+                final String message = (carOrder.getStatus() == Status.COMPLETED) ? "completed" : "in progress";
+                sendMessage(chatId, "Service for your car is " + message);
             } else {
-                sendMessage(chatId, "Користувача не знайдено.");
+                sendMessage(chatId, "User not found.");
             }
 
         } catch (Exception e) {
@@ -183,5 +177,4 @@ public class TelegramBot extends TelegramLongPollingBot {
             sendMessage(chatId, "An error occurred while processing your request.");
         }
     }
-
 }

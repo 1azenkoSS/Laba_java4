@@ -1,5 +1,6 @@
 package org.sto.service.impl;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.sto.dto.CarOrderDTO;
 import org.sto.dto.CarPartDTO;
@@ -24,9 +25,8 @@ public class CarOrderServiceImpl implements CarOrderService {
     private final CarOrderRepository carOrderRepository;
     private final CarService carService;
     private final UserService userService;
-    //private final TelegramBot telegramBot;
     @Override
-    public void addCarOrder(final CarOrderDTO carOrderDTO) {
+    public void addCarOrder(final @Valid CarOrderDTO carOrderDTO) {
         CarOrder carOrder = carOrderDTOToEntity(carOrderDTO);
         carService.save(carOrder.getCar());
         userService.save(carOrder.getUser());
@@ -52,7 +52,6 @@ public class CarOrderServiceImpl implements CarOrderService {
 
     @Override
     public List<CarOrder> displayCarsByProjectStatus(final Status status) {
-
         List<CarOrder> carOrders = carOrderRepository.findAllByStatus(status)
                 .stream()
                 .toList();
@@ -66,17 +65,14 @@ public class CarOrderServiceImpl implements CarOrderService {
     public void updateOrderStatus(final Long orderId, final Status status) {
         final CarOrder savedCarOrder = findById(orderId);
             savedCarOrder.setStatus(status);
-     /*   Update update = new Update();
-        telegramBot.handleContact(update.getMessage());*/
         savedCarOrder.setStatus(status);
         carOrderRepository.save(savedCarOrder);
     }
 
     @Override
-    public void addCarPart(final Long orderId, final CarPartDTO carPartDTO) {
+    public void addCarPart(final Long orderId, final @Valid CarPartDTO carPartDTO) {
         final CarOrder savedCarOrder = findById(orderId);
         CarPart carPart = carPartsDTOToEntity(carPartDTO);
-        //carPartRepository.save(carPart);
         savedCarOrder.getCarParts().add(carPart);
         carOrderRepository.save(savedCarOrder);
     }
