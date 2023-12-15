@@ -13,7 +13,8 @@ public class UserResource {
     @Autowired
     private UserRepository userRepository;
     @GetMapping
-    public String getUser() {
+    public String getUser(){
+
         return "user request";
     }
 

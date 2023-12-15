@@ -1,5 +1,6 @@
 package org.sto.service.impl;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.sto.entity.Car;
@@ -19,7 +20,7 @@ public class CarServiceImpl implements CarService {
     }
 
     @Override
-    public String save(final Car car) {
+    public String save(final @Valid Car car) {
         carRepository.save(car);
         return "Car added successfully";
     }
